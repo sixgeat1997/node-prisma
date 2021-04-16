@@ -69,4 +69,40 @@ exports.signup = async (req, res) => {
   }
 };
 
-exports.resetpassword = async (req, res) => {};
+exports.resetpassword = async (req, res) => {
+  try {
+    const { email, password, confrimpassword } = req.body;
+    const user = await prisma.user
+      .findUnique({
+        where: {
+          email: email,
+        },
+      })
+      .catch((err) => {
+        return res.send(err);
+      });
+    if (!user) {
+      return res.json({
+        message: "User not found.",
+      });
+    } else {
+      if (password != confrimpassword) {
+        return res.json({ message: "Passwords do not match" });
+      } else {
+        await prisma.user.update({
+          where: {
+            email: email,
+          },
+          data: {
+            password: await bcrypt.hash(password, 12),
+          },
+        });
+        return res.json({
+          message: "Change password success",
+        });
+      }
+    }
+  } catch (err) {
+    return res.send(err);
+  }
+};
