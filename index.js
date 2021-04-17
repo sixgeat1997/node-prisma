@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const MySQLStore = require("express-mysql-session")(session);
 const mysql = require("mysql2");
+const { PrismaClient } = require("@prisma/client");
 
 const UserRoute = require("./Routes/UserRoute");
 const AuthRoute = require("./Routes/AuthRoute");
@@ -16,6 +17,7 @@ const connect = async () => {
 
 const app = express();
 const sessionStroe = new MySQLStore(configDatabase, connect);
+const prisma = new PrismaClient();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -28,6 +30,28 @@ app.use(
   })
 );
 app.use(cors());
+
+app.use(async (req, res, next) => {
+  if (!req.session.user) next();
+  else {
+    prisma.user
+      .findUnique({
+        where: {
+          email: req.session.user.email,
+        },
+      })
+      .then((data) => {
+        req.user = data;
+        next();
+      })
+      .catch((err) => console.log(err));
+  }
+});
+
+app.use((req, res, next) => {
+  res.locals.isAuthenticated = req.session.isLoggedIn;
+  next();
+});
 
 app.use("/user", UserRoute);
 app.use("/auth", AuthRoute);

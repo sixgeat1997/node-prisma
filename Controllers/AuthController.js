@@ -18,7 +18,12 @@ exports.login = async (req, res) => {
     } else if (user) {
       const statuslogin = await bcrypt.compare(password, user.password);
       if (statuslogin) {
-        res.send(user);
+        req.session.isLoggedIn = true;
+        req.session.user = user;
+        return req.session.save((err) => {
+          console.log(err);
+          res.send(user);
+        });
       } else {
         res.json({ message: "Authentication failed. Wrong password." });
       }
