@@ -1,14 +1,32 @@
 const express = require("express");
+const session = require("express-session");
 const bodyParser = require("body-parser");
 const cors = require("cors");
-
-const app = express();
+const MySQLStore = require("express-mysql-session")(session);
+const mysql = require("mysql2");
 
 const UserRoute = require("./Routes/UserRoute");
 const AuthRoute = require("./Routes/AuthRoute");
+const configDatabase = require("./config/database");
+
+const connect = async () => {
+  const connectMySQL = await mysql.createConnection(configDatabase);
+  return connectMySQL;
+};
+
+const app = express();
+const sessionStroe = new MySQLStore(configDatabase, connect);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(
+  session({
+    secret: "mysecret",
+    resave: false,
+    saveUninitialized: false,
+    store: sessionStroe,
+  })
+);
 app.use(cors());
 
 app.use("/user", UserRoute);
