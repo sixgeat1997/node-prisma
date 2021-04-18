@@ -33,6 +33,17 @@ exports.login = async (req, res) => {
   }
 };
 
+exports.logout = async (req, res) => {
+  try {
+    req.session.destroy((err) => {
+      console.log(err);
+      res.send("ok");
+    });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 exports.signup = async (req, res) => {
   const { name, email, posts, password, confrimpassword } = req.body;
   try {
