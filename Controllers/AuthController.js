@@ -1,37 +1,78 @@
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcrypt");
-
+const jwt = require("jsonwebtoken");
+const cookie = require("cookie");
 const prisma = new PrismaClient();
+const passport = require("passport");
 
-exports.login = async (req, res) => {
-  const { email, password } = req.body;
+exports.login = async (req, res, next) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: {
-        email: email,
-      },
-    });
-    if (!user) {
-      res.json({
-        message: "Authentication failed. User not found.",
-      });
-    } else if (user) {
-      const statuslogin = await bcrypt.compare(password, user.password);
-      if (statuslogin) {
-        req.session.isLoggedIn = true;
-        req.session.user = user;
-        return req.session.save((err) => {
-          console.log(err);
-          res.send(user);
-        });
-      } else {
-        res.json({ message: "Authentication failed. Wrong password." });
+    passport.authenticate(
+      "local",
+      { session: false },
+      async (err, user, info) => {
+        console.log(user);
+        if (err) return next(err);
+        if (user) {
+          const token = jwt.sign(user, "mysecret", {
+            expiresIn: "1d",
+          });
+          res.setHeader(
+            "Set-cookie",
+            cookie.serialize("token", token, {
+              httpOnly: true,
+              maxAge: 60 * 60,
+              sameSite: "strict",
+              path: "/",
+            })
+          );
+          await prisma.token.create({
+            data: {
+              token: token,
+              authorId: user.id,
+            },
+          });
+          req.session.isLoggedIn = true;
+          req.session.user = user;
+          req.session.save();
+          res.statusCode = 200;
+          return res.json({ user, token });
+        }
       }
-    }
+    )(req, res, next);
   } catch (error) {
-    res.send(error);
+    console.log(error);
   }
 };
+// exports.login = async (req, res) => {
+//   const { email, password } = req.body;
+//   try {
+//     const user = await prisma.user.findUnique({
+//       where: {
+//         email: email,
+//       },
+//     });
+//     if (!user) {
+//       res.json({
+//         message: "Authentication failed. User not found.",
+//       });
+//     } else if (user) {
+//       const statuslogin = await bcrypt.compare(password, user.password);
+//       if (statuslogin) {
+//         req.session.isLoggedIn = true;
+//         req.session.user = user;
+//         return req.session.save((err) => {
+//           console.log(err);
+//           res.send(user);
+//         });
+//       } else {
+//         res.json({ message: "Authentication failed. Wrong password." });
+//       }
+//     }
+//   } catch (error) {
+//     res.send(error);
+//   }
+// };
 
 exports.logout = async (req, res) => {
   try {

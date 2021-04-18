@@ -6,6 +6,8 @@ const MySQLStore = require("express-mysql-session")(session);
 const mysql = require("mysql2");
 const { PrismaClient } = require("@prisma/client");
 
+require("./Passport/passport");
+
 const UserRoute = require("./Routes/UserRoute");
 const AuthRoute = require("./Routes/AuthRoute");
 const configDatabase = require("./config/database");
