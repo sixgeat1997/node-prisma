@@ -12,13 +12,14 @@ exports.login = async (req, res, next) => {
       { session: false },
       async (err, user, info) => {
         console.log(user);
+
         if (err) return next(err);
         if (user) {
           const token = jwt.sign(user, "mysecret", {
             expiresIn: "1d",
           });
           res.setHeader(
-            "Set-cookie",
+            "Set-Cookie",
             cookie.serialize("token", token, {
               httpOnly: true,
               maxAge: 60 * 60,
@@ -26,10 +27,16 @@ exports.login = async (req, res, next) => {
               path: "/",
             })
           );
-          await prisma.token.create({
+          await prisma.user.update({
+            where: {
+              email: user.email,
+            },
             data: {
-              token: token,
-              authorId: user.id,
+              Token: {
+                create: {
+                  token: token,
+                },
+              },
             },
           });
           req.session.isLoggedIn = true;
@@ -37,6 +44,8 @@ exports.login = async (req, res, next) => {
           req.session.save();
           res.statusCode = 200;
           return res.json({ user, token });
+        } else {
+          return res.send(info);
         }
       }
     )(req, res, next);

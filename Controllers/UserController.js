@@ -4,19 +4,20 @@ const passport = require("passport");
 const prisma = new PrismaClient();
 
 exports.getUser = async (req, res, next) => {
-  passport.authenticate(
-    "local",
-    { session: false },
-    async (err, user, info) => {
-      if (err) return next(err);
-      if (user) {
-        console.log(user);
-
-        const users = await prisma.user.findMany();
-        res.json(users);
-      }
+  passport.authenticate("jwt", { session: false }, async (err, user, info) => {
+    if (err) return next(err);
+    if (user) {
+      const users = await prisma.user.findMany({
+        include: {
+          posts: true,
+          Token: true,
+        },
+      });
+      return res.json(users);
+    } else {
+      return res.send(info);
     }
-  )(req, res, next);
+  })(req, res, next);
 };
 
 exports.destroyUser = async (req, res) => {

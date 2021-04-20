@@ -31,10 +31,10 @@ app.use(
     store: sessionStroe,
   })
 );
-app.use(cors());
+app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 
 app.use(async (req, res, next) => {
-  console.log("-", req.session.user);
+  console.log("req.session.user", req.session.user);
   if (!req.session.user) next();
   else {
     prisma.user
